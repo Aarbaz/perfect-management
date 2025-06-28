@@ -56,12 +56,20 @@ const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and password are required'
+      });
+    }
+
     // Find user by username
     const user = await User.findByUsername(username);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Username not found. Please check your username and try again.'
       });
     }
 
@@ -70,7 +78,7 @@ const login = async (req, res) => {
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Incorrect password. Please check your password and try again.'
       });
     }
 
@@ -93,7 +101,7 @@ const login = async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Login failed. Please try again later.'
     });
   }
 };
@@ -103,16 +111,37 @@ const updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { name } = req.body;
-    let profile_image;
+    let profile_image = null;
+    
     if (req.file) {
       profile_image = `/uploads/${req.file.filename}`;
     }
-    await User.updateProfile(userId, { name, profile_image });
+    
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (profile_image) updateData.profile_image = profile_image;
+    
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No data provided for update' 
+      });
+    }
+    
+    await User.updateProfile(userId, updateData);
     const user = await User.getFullProfile(userId);
-    res.json({ success: true, message: 'Profile updated', data: { user } });
+    
+    res.json({ 
+      success: true, 
+      message: 'Profile updated successfully', 
+      data: { user } 
+    });
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
   }
 };
 
@@ -121,19 +150,51 @@ const changePassword = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password and new password are required' 
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'New password must be at least 6 characters long' 
+      });
+    }
+    
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
     }
-    const isValid = await User.verifyPassword(currentPassword, user.password);
+    
+    // Get user with password for verification
+    const userWithPassword = await User.findByUsername(user.username);
+    const isValid = await User.verifyPassword(currentPassword, userWithPassword.password);
+    
     if (!isValid) {
-      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password is incorrect' 
+      });
     }
+    
     await User.updatePassword(userId, newPassword);
-    res.json({ success: true, message: 'Password updated successfully' });
+    res.json({ 
+      success: true, 
+      message: 'Password updated successfully' 
+    });
   } catch (error) {
     console.error('Change password error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
   }
 };
 

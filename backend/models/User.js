@@ -53,11 +53,11 @@ class User {
     }
   }
 
-  // Find user by ID
+  // Find user by ID (with password for verification)
   static async findById(id) {
     try {
       const [rows] = await pool.execute(
-        'SELECT id, username, email, created_at FROM users WHERE id = ?',
+        'SELECT id, username, email, password, profile_image, created_at FROM users WHERE id = ?',
         [id]
       );
       
@@ -121,20 +121,28 @@ class User {
     try {
       const fields = [];
       const params = [];
+      
       if (name) {
         fields.push('username = ?');
         params.push(name);
       }
+      
       if (profile_image) {
         fields.push('profile_image = ?');
         params.push(profile_image);
       }
-      if (fields.length === 0) return false;
+      
+      if (fields.length === 0) {
+        return false;
+      }
+      
       params.push(userId);
+      
       await pool.execute(
         `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
         params
       );
+      
       return true;
     } catch (error) {
       throw error;

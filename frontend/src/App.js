@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import AuthProvider, { AuthContext } from './context/AuthProvider';
@@ -14,13 +14,34 @@ import ProfilePage from './pages/ProfilePage';
 
 const AppContent = () => {
   const { user } = useContext(AuthContext);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
     <Router>
       <Sidebar />
-      <div style={{ marginLeft: user ? '250px' : '0' }}>
-        <ToastContainer position="top-right" autoClose={3000} />
-        <div className="container-fluid p-4">
+      <div 
+        style={{ 
+          marginLeft: user && !isMobile ? '250px' : '0',
+          minHeight: '100vh',
+          transition: 'margin-left 0.3s ease'
+        }}
+      >
+        <ToastContainer 
+          position="top-right" 
+          autoClose={3000}
+          style={{ zIndex: 9999 }}
+        />
+        <div className="container-fluid p-3 p-md-4">
           <Routes>
             <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
             <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />

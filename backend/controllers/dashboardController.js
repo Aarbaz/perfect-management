@@ -1,5 +1,128 @@
 const Vehicle = require('../models/Vehicle');
 
+// Get comprehensive dashboard summary (main endpoint)
+const getSummary = async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    console.log('Dashboard summary date:', date);
+    
+    // Get daily stats
+    const dailyStats = await Vehicle.getDashboardStats(date);
+    console.log('Daily stats:', dailyStats);
+
+    // Calculate profit
+    const profit = (dailyStats.totalStats.paid_amount || 0) - (dailyStats.totalStats.unpaid_amount || 0);
+
+    // Get weekly stats for chart (last 7 days)
+    const endDate = new Date(date);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 6);
+    
+    const weeklyChart = [];
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      const stats = await Vehicle.getDashboardStats(dateStr);
+      const dayProfit = (stats.totalStats.paid_amount || 0) - (stats.totalStats.unpaid_amount || 0);
+      
+      weeklyChart.push({
+        date: dateStr,
+        vehicles: stats.totalStats.total_vehicles || 0,
+        amount: parseFloat(stats.totalStats.total_amount) || 0,
+        profit: dayProfit
+      });
+    }
+
+    // Get monthly stats for chart (current month)
+    const year = new Date(date).getFullYear();
+    const month = new Date(date).getMonth() + 1;
+    const monthStartDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const monthEndDate = new Date(year, month, 0).toISOString().split('T')[0];
+    
+    const filters = {
+      start_date: monthStartDate,
+      end_date: monthEndDate
+    };
+    const monthlyVehicles = await Vehicle.getAll(1000, 0, filters);
+    
+    const monthlyChart = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      const dayVehicles = monthlyVehicles.filter(v => v.entry_date === dayDate);
+      const dayAmount = dayVehicles.reduce((sum, v) => sum + parseFloat(v.amount), 0);
+      const dayPaid = dayVehicles.filter(v => v.payment_status === 'Paid').reduce((sum, v) => sum + parseFloat(v.amount), 0);
+      const dayUnpaid = dayVehicles.filter(v => v.payment_status === 'Unpaid').reduce((sum, v) => sum + parseFloat(v.amount), 0);
+      
+      monthlyChart.push({
+        date: dayDate,
+        vehicles: dayVehicles.length,
+        amount: dayAmount,
+        paid: dayPaid,
+        unpaid: dayUnpaid,
+        profit: dayPaid - dayUnpaid
+      });
+    }
+
+    // Format daily chart data
+    const dailyChart = {
+      labels: [date],
+      vehicles: [dailyStats.totalStats.total_vehicles || 0],
+      amounts: [parseFloat(dailyStats.totalStats.total_amount) || 0],
+      profits: [profit]
+    };
+
+    // Format weekly chart data
+    const weeklyChartFormatted = {
+      labels: weeklyChart.map(item => {
+        const d = new Date(item.date);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }),
+      vehicles: weeklyChart.map(item => item.vehicles),
+      amounts: weeklyChart.map(item => item.amount),
+      profits: weeklyChart.map(item => item.profit)
+    };
+
+    // Format monthly chart data
+    const monthlyChartFormatted = {
+      labels: monthlyChart.map(item => {
+        const d = new Date(item.date);
+        return d.getDate();
+      }),
+      vehicles: monthlyChart.map(item => item.vehicles),
+      amounts: monthlyChart.map(item => item.amount),
+      profits: monthlyChart.map(item => item.profit)
+    };
+
+    const summary = {
+      totalVehicles: dailyStats.totalStats.total_vehicles || 0,
+      paidAmount: `₹${parseFloat(dailyStats.totalStats.paid_amount || 0).toFixed(2)}`,
+      unpaidAmount: `₹${parseFloat(dailyStats.totalStats.unpaid_amount || 0).toFixed(2)}`,
+      profit: `₹${profit.toFixed(2)}`,
+      dailyChart: dailyChart,
+      weeklyChart: weeklyChartFormatted,
+      monthlyChart: monthlyChartFormatted
+    };
+
+    console.log('Final summary:', summary);
+
+    res.json({
+      success: true,
+      data: summary
+    });
+  } catch (error) {
+    console.error('Get summary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 // Get daily dashboard summary
 const getDailySummary = async (req, res) => {
   try {
@@ -200,26 +323,20 @@ const exportDailyToExcel = async (req, res) => {
 
     // Add detailed vehicle list
     worksheet.addRow(['Detailed Vehicle List']);
-    worksheet.addRow(['ID', 'Type', 'Customer', 'Mobile', 'Amount', 'Status', 'Entry Date']);
+    worksheet.addRow(['ID', 'Vehicle Type', 'Vehicle Number', 'Customer Name', 'Mobile', 'Amount', 'Payment Status', 'Entry Date']);
     
     vehicles.forEach(vehicle => {
       worksheet.addRow([
         vehicle.id,
         vehicle.vehicle_type,
+        vehicle.vehicle_number,
         vehicle.customer_name,
         vehicle.mobile_number,
         `₹${parseFloat(vehicle.amount).toFixed(2)}`,
         vehicle.payment_status,
-        new Date(vehicle.entry_date).toLocaleDateString()
+        vehicle.entry_date
       ]);
     });
-
-    // Style headers
-    worksheet.getRow(1).font = { bold: true, size: 16 };
-    worksheet.getRow(4).font = { bold: true };
-    worksheet.getRow(11).font = { bold: true };
-    worksheet.getRow(15).font = { bold: true };
-    worksheet.getRow(19).font = { bold: true };
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=daily_summary_${date}.xlsx`);
@@ -292,6 +409,7 @@ const exportDailyToPDF = async (req, res) => {
 };
 
 module.exports = {
+  getSummary,
   getDailySummary,
   getWeeklyStats,
   getMonthlyStats,

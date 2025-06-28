@@ -47,17 +47,40 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test endpoint to verify server is working
+app.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Server is working',
+    routes: {
+      auth: '/api/auth',
+      vehicles: '/api/vehicles',
+      dashboard: '/api/dashboard',
+      reports: '/api/reports'
+    }
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // 404 handler
 app.use('*', (req, res) => {
+  console.log('404 - Route not found:', req.method, req.originalUrl);
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
+    requestedUrl: req.originalUrl,
+    method: req.method
   });
 });
 
@@ -86,6 +109,8 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 API Documentation: http://localhost:${PORT}/health`);
       console.log(`🔗 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
+      console.log(`🧪 Test endpoint: http://localhost:${PORT}/test`);
+      console.log(`📈 Dashboard test: http://localhost:${PORT}/api/dashboard/ping`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
