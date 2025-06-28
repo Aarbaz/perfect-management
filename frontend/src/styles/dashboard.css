@@ -1,0 +1,46 @@
+/* Responsive dashboard header and controls */
+.dashboard-header,
+.dashboard-header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-header,
+  .dashboard-header-controls {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  .dashboard-header-controls > * {
+    width: 100% !important;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Responsive table */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Responsive cards and charts */
+@media (max-width: 576px) {
+  .row > [class^="col-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .card, .table {
+    font-size: 0.95rem;
+  }
+}
+
+/* Responsive chart container */
+.chart-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+} 
