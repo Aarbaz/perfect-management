@@ -15,6 +15,13 @@ const reportRoutes = require('./routes/reports');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const HOST = process.env.HOST || "https://terrific-celebration-production-30b0.up.railway.app";
+
+console.log(`🚀 Server running on port ${PORT}`);
+console.log(`📊 API Documentation: ${HOST}/health`);
+console.log(`🧪 Test endpoint: ${HOST}/test`);
+console.log(`📈 Dashboard test: ${HOST}/api/dashboard/ping`);
+
 
 // Middleware
 app.use(helmet({
