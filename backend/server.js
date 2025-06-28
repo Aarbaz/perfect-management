@@ -129,6 +129,7 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
   process.exit(1);
 });
+console.log('DB_HOST in severjs:', process.env.DB_HOST);
 
 // Start the server
 startServer(); 

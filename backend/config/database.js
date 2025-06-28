@@ -70,6 +70,7 @@ const initializeDatabase = async () => {
     throw error;
   }
 };
+console.log('DB_HOST:', process.env.DB_HOST);
 
 module.exports = {
   pool,
