@@ -29,7 +29,7 @@ app.use(helmet({
 })); // Security headers
 app.use(morgan('combined')); // Logging
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: ['https://terrific-celebration-production-30b0.up.railway.app:8080', 'http://127.0.0.1:3000', 'https://terrific-celebration-production-30b0.up.railway.app:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
