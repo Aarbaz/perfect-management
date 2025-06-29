@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create axios instance with base configuration
 const api = axios.create({
   // baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
-  baseURL: 'https://terrific-celebration-production-30b0.up.railway.app/',// for production
+  baseURL: 'http://terrific-celebration-production-30b0.up.railway.app/',// for production
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
